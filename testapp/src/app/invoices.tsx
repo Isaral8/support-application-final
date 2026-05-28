@@ -5,6 +5,7 @@ import {
   Animated,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StatusBar,
@@ -19,8 +20,9 @@ import * as Sharing from 'expo-sharing';
 import { API_URL as BASE_URL } from '../services/auth';
 
 const API_URL = `${BASE_URL}/api/invoices`;
+const CUSTOMERS_URL = `${BASE_URL}/api/customers`;
+const PRODUCTS_URL = `${BASE_URL}/api/products`;
 
-// ─── Colour tokens ────────────────────────────────────────────────────────────
 const C = {
   bg: '#F7F6F2',
   surface: '#FFFFFF',
@@ -38,6 +40,74 @@ const C = {
   borderStrong: '#D1CFCA',
   amber: '#D97706',
   amberLight: '#FFFBEB',
+};
+
+// ─── Picker Modal ─────────────────────────────────────────────────────────────
+const PickerModal = ({
+  visible,
+  title,
+  items,
+  onSelect,
+  onClose,
+  searchKey,
+}: {
+  visible: boolean;
+  title: string;
+  items: any[];
+  onSelect: (item: any) => void;
+  onClose: () => void;
+  searchKey: string;
+}) => {
+  const [search, setSearch] = useState('');
+  const filtered = items.filter((item) =>
+    item[searchKey]?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={styles.pickerOverlay}>
+        <View style={styles.pickerBox}>
+          <View style={styles.pickerHeader}>
+            <Text style={styles.pickerTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose} style={styles.pickerClose}>
+              <Text style={styles.pickerCloseText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.pickerSearch}>
+            <TextInput
+              placeholder={`Search ${title.toLowerCase()}...`}
+              value={search}
+              onChangeText={setSearch}
+              style={styles.pickerSearchInput}
+              placeholderTextColor={C.textTertiary}
+              autoFocus
+            />
+          </View>
+          {filtered.length === 0 ? (
+            <Text style={styles.pickerEmpty}>No results found</Text>
+          ) : (
+            <FlatList
+              data={filtered}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.pickerItem}
+                  onPress={() => {
+                    onSelect(item);
+                    setSearch('');
+                    onClose();
+                  }}>
+                  <Text style={styles.pickerItemName}>{item[searchKey]}</Text>
+                  {item.email && <Text style={styles.pickerItemSub}>{item.email}</Text>}
+                  {item.price && <Text style={styles.pickerItemSub}>₹{item.price} • GST {item.gst}%</Text>}
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
 };
 
 // ─── Field ────────────────────────────────────────────────────────────────────
@@ -70,6 +140,29 @@ const Field = ({
   </View>
 );
 
+// ─── Selector Button ──────────────────────────────────────────────────────────
+const SelectorBtn = ({
+  label,
+  value,
+  placeholder,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  onPress: () => void;
+}) => (
+  <View style={styles.fieldWrap}>
+    <Text style={styles.fieldLabel}>{label} <Text style={{ color: C.danger }}>*</Text></Text>
+    <TouchableOpacity style={styles.selectorBtn} onPress={onPress} activeOpacity={0.8}>
+      <Text style={[styles.selectorText, !value && { color: C.textTertiary }]}>
+        {value || placeholder}
+      </Text>
+      <Text style={styles.selectorArrow}>▼</Text>
+    </TouchableOpacity>
+  </View>
+);
+
 // ─── Summary row ──────────────────────────────────────────────────────────────
 const SummaryRow = ({ label, value, large }: { label: string; value: string; large?: boolean }) => (
   <View style={styles.summaryRow}>
@@ -79,16 +172,8 @@ const SummaryRow = ({ label, value, large }: { label: string; value: string; lar
 );
 
 // ─── Invoice list card ────────────────────────────────────────────────────────
-const InvoiceCard = ({
-  item,
-  onDelete,
-  onShare,
-  index,
-}: {
-  item: any;
-  onDelete: () => void;
-  onShare: () => void;
-  index: number;
+const InvoiceCard = ({ item, onDelete, onShare, index }: {
+  item: any; onDelete: () => void; onShare: () => void; index: number;
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
@@ -104,7 +189,6 @@ const InvoiceCard = ({
 
   return (
     <Animated.View style={[styles.invCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-      {/* Top row */}
       <View style={styles.invCardTop}>
         <View style={styles.invIcon}>
           <Text style={styles.invIconText}>🧾</Text>
@@ -117,11 +201,7 @@ const InvoiceCard = ({
           <Text style={styles.invTotalBadgeText}>₹{item.total?.toFixed(2)}</Text>
         </View>
       </View>
-
-      {/* Divider */}
       <View style={styles.invDivider} />
-
-      {/* Details row */}
       <View style={styles.invDetails}>
         <View style={styles.invDetailItem}>
           <Text style={styles.invDetailLabel}>Product</Text>
@@ -136,8 +216,6 @@ const InvoiceCard = ({
           <Text style={styles.invDetailValue}>{item.gst}%</Text>
         </View>
       </View>
-
-      {/* Actions */}
       <View style={styles.invActions}>
         <TouchableOpacity style={styles.invShareBtn} onPress={onShare} activeOpacity={0.8}>
           <Text style={styles.invShareBtnText}>📤  Share PDF</Text>
@@ -153,20 +231,43 @@ const InvoiceCard = ({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function InvoicesScreen() {
   const [tab, setTab] = useState<'create' | 'list'>('create');
+
+  // Form fields
   const [customerName, setCustomerName] = useState('');
   const [productName, setProductName] = useState('');
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
   const [gst, setGst] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Data
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Picker modals
+  const [showCustomerPicker, setShowCustomerPicker] = useState(false);
+  const [showProductPicker, setShowProductPicker] = useState(false);
 
   const subtotal = Number(price) * Number(quantity);
   const gstAmount = subtotal * (Number(gst) / 100);
   const total = subtotal + gstAmount;
-
   const isFormReady = customerName && productName && price && quantity && gst;
+
+  // Fetch all data
+  const fetchAll = async () => {
+    try {
+      const [custRes, prodRes] = await Promise.all([
+        fetch(CUSTOMERS_URL),
+        fetch(PRODUCTS_URL),
+      ]);
+      const custData = await custRes.json();
+      const prodData = await prodRes.json();
+      if (Array.isArray(custData)) setCustomers(custData);
+      if (Array.isArray(prodData)) setProducts(prodData);
+    } catch { }
+  };
 
   const fetchInvoices = async () => {
     try {
@@ -182,14 +283,26 @@ export default function InvoicesScreen() {
   };
 
   useEffect(() => {
+    fetchAll();
+  }, []);
+
+  useEffect(() => {
     if (tab === 'list') fetchInvoices();
   }, [tab]);
 
-  const buildHtml = (data: {
-    customerName: string; productName: string;
-    price: number; quantity: number; gst: number;
-    subtotal: number; gstAmount: number; total: number;
-  }) => `
+  // When customer selected from picker
+  const onSelectCustomer = (customer: any) => {
+    setCustomerName(customer.name);
+  };
+
+  // When product selected from picker — auto fill price and gst
+  const onSelectProduct = (product: any) => {
+    setProductName(product.name);
+    setPrice(product.price.toString());
+    setGst(product.gst.toString());
+  };
+
+  const buildHtml = (data: any) => `
     <html><body style="font-family: Arial; padding: 40px; color: #111;">
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
         <div><h1 style="color:#1A56DB; margin:0; font-size:32px;">INVOICE</h1>
@@ -199,10 +312,10 @@ export default function InvoicesScreen() {
       <h2 style="margin:0 0 4px;">${data.customerName}</h2>
       <table width="100%" style="border-collapse:collapse; margin-top:24px;">
         <tr style="background:#F7F6F2;">
-          <th style="padding:12px 16px; text-align:left; border:1px solid #E5E3DC; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:#6B7280;">Product</th>
-          <th style="padding:12px 16px; text-align:right; border:1px solid #E5E3DC; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:#6B7280;">Price</th>
-          <th style="padding:12px 16px; text-align:right; border:1px solid #E5E3DC; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:#6B7280;">Qty</th>
-          <th style="padding:12px 16px; text-align:right; border:1px solid #E5E3DC; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:#6B7280;">Subtotal</th>
+          <th style="padding:12px 16px; text-align:left; border:1px solid #E5E3DC; font-size:13px; color:#6B7280;">Product</th>
+          <th style="padding:12px 16px; text-align:right; border:1px solid #E5E3DC; font-size:13px; color:#6B7280;">Price</th>
+          <th style="padding:12px 16px; text-align:right; border:1px solid #E5E3DC; font-size:13px; color:#6B7280;">Qty</th>
+          <th style="padding:12px 16px; text-align:right; border:1px solid #E5E3DC; font-size:13px; color:#6B7280;">Subtotal</th>
         </tr>
         <tr>
           <td style="padding:14px 16px; border:1px solid #E5E3DC;">${data.productName}</td>
@@ -223,8 +336,7 @@ export default function InvoicesScreen() {
 
   const shareInvoicePdf = async (item: any) => {
     try {
-      const html = buildHtml(item);
-      const file = await Print.printToFileAsync({ html });
+      const file = await Print.printToFileAsync({ html: buildHtml(item) });
       await Sharing.shareAsync(file.uri);
     } catch {
       Alert.alert('Error', 'Could not generate PDF');
@@ -232,10 +344,7 @@ export default function InvoicesScreen() {
   };
 
   const generateAndSave = async () => {
-    if (!isFormReady) {
-      Alert.alert('Required fields', 'Please fill in all fields.');
-      return;
-    }
+    if (!isFormReady) { Alert.alert('Required', 'Please fill all fields.'); return; }
     try {
       setSaving(true);
       const payload = {
@@ -250,11 +359,8 @@ export default function InvoicesScreen() {
       });
       const saved = await res.json();
       if (!saved._id) { Alert.alert('Error', 'Could not save invoice'); return; }
-
-      const html = buildHtml(payload);
-      const file = await Print.printToFileAsync({ html });
+      const file = await Print.printToFileAsync({ html: buildHtml(payload) });
       await Sharing.shareAsync(file.uri);
-
       setCustomerName(''); setProductName(''); setPrice(''); setQuantity(''); setGst('');
       Alert.alert('Done', 'Invoice saved and PDF shared!');
     } catch {
@@ -282,7 +388,7 @@ export default function InvoicesScreen() {
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
 
-      {/* ── Header ── */}
+      {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerLabel}>Finance</Text>
@@ -295,15 +401,14 @@ export default function InvoicesScreen() {
         )}
       </View>
 
-      {/* ── Tab switcher ── */}
+      {/* Tab switcher */}
       <View style={styles.tabBar}>
         {(['create', 'list'] as const).map((t) => (
           <TouchableOpacity
             key={t}
             style={[styles.tabBtn, tab === t && styles.tabBtnActive]}
             onPress={() => setTab(t)}
-            activeOpacity={0.8}
-          >
+            activeOpacity={0.8}>
             <Text style={[styles.tabBtnText, tab === t && styles.tabBtnTextActive]}>
               {t === 'create' ? '✏️  Create' : '📋  All Invoices'}
             </Text>
@@ -311,16 +416,44 @@ export default function InvoicesScreen() {
         ))}
       </View>
 
-      {/* ── Create tab ── */}
+      {/* Create tab */}
       {tab === 'create' ? (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.createScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
+            {/* Customer Selector */}
             <Text style={styles.sectionLabel}>Customer</Text>
-            <Field label="Customer name" required value={customerName} onChangeText={setCustomerName} placeholder="e.g. Priya Sharma" autoCapitalize="words" />
+            <SelectorBtn
+              label="Select Customer"
+              value={customerName}
+              placeholder="Tap to choose a customer..."
+              onPress={() => setShowCustomerPicker(true)}
+            />
+            {/* Or type manually */}
+            <Field
+              label="Or type customer name"
+              value={customerName}
+              onChangeText={setCustomerName}
+              placeholder="Type manually..."
+              autoCapitalize="words"
+            />
 
+            {/* Product Selector */}
             <Text style={styles.sectionLabel}>Product</Text>
-            <Field label="Product name" required value={productName} onChangeText={setProductName} placeholder="e.g. Steel Rods" autoCapitalize="words" />
+            <SelectorBtn
+              label="Select Product"
+              value={productName}
+              placeholder="Tap to choose a product..."
+              onPress={() => setShowProductPicker(true)}
+            />
+            {/* Price and GST auto-filled but editable */}
+            <Field
+              label="Or type product name"
+              value={productName}
+              onChangeText={setProductName}
+              placeholder="Type manually..."
+              autoCapitalize="words"
+            />
 
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
@@ -342,7 +475,7 @@ export default function InvoicesScreen() {
                 <Text style={styles.summaryTitle}>Invoice Summary</Text>
                 {isFormReady && (
                   <View style={styles.readyPill}>
-                    <Text style={styles.readyPillText}>Ready</Text>
+                    <Text style={styles.readyPillText}>Ready ✅</Text>
                   </View>
                 )}
               </View>
@@ -358,8 +491,7 @@ export default function InvoicesScreen() {
               style={[styles.generateBtn, (!isFormReady || saving) && styles.generateBtnDisabled]}
               onPress={generateAndSave}
               disabled={!isFormReady || saving}
-              activeOpacity={0.85}
-            >
+              activeOpacity={0.85}>
               {saving ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
@@ -372,7 +504,6 @@ export default function InvoicesScreen() {
         </KeyboardAvoidingView>
 
       ) : (
-        /* ── List tab ── */
         loading ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={C.brand} />
@@ -401,38 +532,54 @@ export default function InvoicesScreen() {
           />
         )
       )}
+
+      {/* Customer Picker Modal */}
+      <PickerModal
+        visible={showCustomerPicker}
+        title="Select Customer"
+        items={customers}
+        searchKey="name"
+        onSelect={onSelectCustomer}
+        onClose={() => setShowCustomerPicker(false)}
+      />
+
+      {/* Product Picker Modal */}
+      <PickerModal
+        visible={showProductPicker}
+        title="Select Product"
+        items={products}
+        searchKey="name"
+        onSelect={onSelectProduct}
+        onClose={() => setShowProductPicker(false)}
+      />
     </View>
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16 },
   headerLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 1.2, color: C.textTertiary, textTransform: 'uppercase', marginBottom: 2 },
   headerTitle: { fontSize: 34, fontWeight: '800', color: C.textPrimary, letterSpacing: -0.5 },
   countBadge: { backgroundColor: C.brandLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   countBadgeText: { fontSize: 13, fontWeight: '700', color: C.brand },
-
   tabBar: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 16, backgroundColor: C.surfaceAlt, borderRadius: 14, padding: 4, gap: 4 },
   tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
   tabBtnActive: { backgroundColor: C.brand },
   tabBtnText: { fontSize: 14, fontWeight: '600', color: C.textSecondary },
   tabBtnTextActive: { color: '#fff' },
-
   createScroll: { paddingHorizontal: 20, paddingTop: 4 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', color: C.textTertiary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, marginTop: 4 },
-
+  sectionLabel: { fontSize: 11, fontWeight: '700', color: C.textTertiary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, marginTop: 8 },
   row: { flexDirection: 'row' },
-
   fieldWrap: { marginBottom: 14 },
   fieldLabel: { fontSize: 12, fontWeight: '600', color: C.textSecondary, letterSpacing: 0.5, marginBottom: 6, textTransform: 'uppercase' },
   fieldRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: C.border, borderRadius: 12, backgroundColor: C.surface, overflow: 'hidden' },
   fieldAffix: { paddingHorizontal: 12, fontSize: 15, color: C.textSecondary, backgroundColor: C.surfaceAlt, paddingVertical: 14, borderRightWidth: 1, borderRightColor: C.border },
   fieldSuffix: { borderRightWidth: 0, borderLeftWidth: 1, borderLeftColor: C.border },
   fieldInput: { flex: 1, padding: 14, fontSize: 15, color: C.textPrimary, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12 },
-
+  selectorBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: C.surface, borderWidth: 1, borderColor: C.brand, borderRadius: 12, padding: 14 },
+  selectorText: { fontSize: 15, color: C.textPrimary, fontWeight: '600', flex: 1 },
+  selectorArrow: { fontSize: 12, color: C.brand, marginLeft: 8 },
   summaryCard: { backgroundColor: C.surface, borderRadius: 16, padding: 20, marginTop: 8, marginBottom: 20, borderWidth: 1, borderColor: C.border },
   summaryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   summaryTitle: { fontSize: 16, fontWeight: '700', color: C.textPrimary },
@@ -444,13 +591,10 @@ const styles = StyleSheet.create({
   summaryLabelLarge: { fontSize: 17, fontWeight: '700', color: C.textPrimary },
   summaryValueLarge: { fontSize: 20, fontWeight: '800', color: C.brand },
   summaryDivider: { height: 1, backgroundColor: C.border, marginVertical: 12 },
-
   generateBtn: { backgroundColor: C.brand, borderRadius: 14, padding: 18, alignItems: 'center' },
   generateBtnDisabled: { opacity: 0.45 },
   generateBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-
   list: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100 },
-
   invCard: { backgroundColor: C.surface, borderRadius: 16, marginBottom: 14, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
   invCardTop: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   invIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: C.brandLight, alignItems: 'center', justifyContent: 'center' },
@@ -469,10 +613,21 @@ const styles = StyleSheet.create({
   invShareBtnText: { fontSize: 14, fontWeight: '700', color: C.brand },
   invDeleteBtn: { width: 42, height: 42, borderRadius: 10, backgroundColor: C.dangerLight, alignItems: 'center', justifyContent: 'center' },
   invDeleteBtnText: { fontSize: 18 },
-
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
   loadingText: { marginTop: 12, fontSize: 14, color: C.textTertiary },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: C.textPrimary, textAlign: 'center', marginBottom: 6 },
   emptyBody: { fontSize: 14, color: C.textSecondary, textAlign: 'center' },
+  pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  pickerBox: { backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '75%', paddingBottom: 30 },
+  pickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: C.border },
+  pickerTitle: { fontSize: 18, fontWeight: '700', color: C.textPrimary },
+  pickerClose: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  pickerCloseText: { fontSize: 14, color: C.textSecondary, fontWeight: '700' },
+  pickerSearch: { padding: 16, borderBottomWidth: 1, borderBottomColor: C.border },
+  pickerSearchInput: { backgroundColor: C.bg, borderRadius: 12, padding: 12, fontSize: 15, color: C.textPrimary },
+  pickerEmpty: { textAlign: 'center', padding: 30, color: C.textTertiary, fontSize: 14 },
+  pickerItem: { padding: 16, borderBottomWidth: 1, borderBottomColor: C.border },
+  pickerItemName: { fontSize: 16, fontWeight: '600', color: C.textPrimary },
+  pickerItemSub: { fontSize: 13, color: C.textTertiary, marginTop: 3 },
 });

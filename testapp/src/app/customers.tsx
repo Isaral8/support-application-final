@@ -16,8 +16,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { API_URL as BASE_URL } from '../services/auth';
 
-const API_URL = 'https://brewery-dad-roundup.ngrok-free.dev/api/customers';
+const API_URL = `${BASE_URL}/api/customers`;
 
 // ─── Colour tokens ───────────────────────────────────────────────────────────
 const C = {
