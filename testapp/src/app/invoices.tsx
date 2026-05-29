@@ -43,26 +43,14 @@ const C = {
 };
 
 // ─── Picker Modal ─────────────────────────────────────────────────────────────
-const PickerModal = ({
-  visible,
-  title,
-  items,
-  onSelect,
-  onClose,
-  searchKey,
-}: {
-  visible: boolean;
-  title: string;
-  items: any[];
-  onSelect: (item: any) => void;
-  onClose: () => void;
-  searchKey: string;
+const PickerModal = ({ visible, title, items, onSelect, onClose, searchKey }: {
+  visible: boolean; title: string; items: any[];
+  onSelect: (item: any) => void; onClose: () => void; searchKey: string;
 }) => {
   const [search, setSearch] = useState('');
   const filtered = items.filter((item) =>
     item[searchKey]?.toLowerCase().includes(search.toLowerCase())
   );
-
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.pickerOverlay}>
@@ -76,11 +64,9 @@ const PickerModal = ({
           <View style={styles.pickerSearch}>
             <TextInput
               placeholder={`Search ${title.toLowerCase()}...`}
-              value={search}
-              onChangeText={setSearch}
+              value={search} onChangeText={setSearch}
               style={styles.pickerSearchInput}
-              placeholderTextColor={C.textTertiary}
-              autoFocus
+              placeholderTextColor={C.textTertiary} autoFocus
             />
           </View>
           {filtered.length === 0 ? (
@@ -90,13 +76,7 @@ const PickerModal = ({
               data={filtered}
               keyExtractor={(item) => item._id}
               renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.pickerItem}
-                  onPress={() => {
-                    onSelect(item);
-                    setSearch('');
-                    onClose();
-                  }}>
+                <TouchableOpacity style={styles.pickerItem} onPress={() => { onSelect(item); setSearch(''); onClose(); }}>
                   <Text style={styles.pickerItemName}>{item[searchKey]}</Text>
                   {item.email && <Text style={styles.pickerItemSub}>{item.email}</Text>}
                   {item.price && <Text style={styles.pickerItemSub}>₹{item.price} • GST {item.gst}%</Text>}
@@ -111,29 +91,18 @@ const PickerModal = ({
 };
 
 // ─── Field ────────────────────────────────────────────────────────────────────
-const Field = ({
-  label,
-  required,
-  prefix,
-  suffix,
-  ...props
-}: {
-  label: string;
-  required?: boolean;
-  prefix?: string;
-  suffix?: string;
+const Field = ({ label, required, prefix, suffix, ...props }: {
+  label: string; required?: boolean; prefix?: string; suffix?: string;
 } & React.ComponentProps<typeof TextInput>) => (
   <View style={styles.fieldWrap}>
     <Text style={styles.fieldLabel}>
-      {label}
-      {required && <Text style={{ color: C.danger }}> *</Text>}
+      {label}{required && <Text style={{ color: C.danger }}> *</Text>}
     </Text>
     <View style={styles.fieldRow}>
       {prefix ? <Text style={styles.fieldAffix}>{prefix}</Text> : null}
       <TextInput
         style={[styles.fieldInput, (prefix || suffix) && { flex: 1, borderRadius: 0, borderLeftWidth: prefix ? 0 : 1, borderRightWidth: suffix ? 0 : 1 }]}
-        placeholderTextColor={C.textTertiary}
-        {...props}
+        placeholderTextColor={C.textTertiary} {...props}
       />
       {suffix ? <Text style={[styles.fieldAffix, styles.fieldSuffix]}>{suffix}</Text> : null}
     </View>
@@ -141,23 +110,13 @@ const Field = ({
 );
 
 // ─── Selector Button ──────────────────────────────────────────────────────────
-const SelectorBtn = ({
-  label,
-  value,
-  placeholder,
-  onPress,
-}: {
-  label: string;
-  value: string;
-  placeholder: string;
-  onPress: () => void;
+const SelectorBtn = ({ label, value, placeholder, onPress }: {
+  label: string; value: string; placeholder: string; onPress: () => void;
 }) => (
   <View style={styles.fieldWrap}>
     <Text style={styles.fieldLabel}>{label} <Text style={{ color: C.danger }}>*</Text></Text>
     <TouchableOpacity style={styles.selectorBtn} onPress={onPress} activeOpacity={0.8}>
-      <Text style={[styles.selectorText, !value && { color: C.textTertiary }]}>
-        {value || placeholder}
-      </Text>
+      <Text style={[styles.selectorText, !value && { color: C.textTertiary }]}>{value || placeholder}</Text>
       <Text style={styles.selectorArrow}>▼</Text>
     </TouchableOpacity>
   </View>
@@ -172,8 +131,9 @@ const SummaryRow = ({ label, value, large }: { label: string; value: string; lar
 );
 
 // ─── Invoice list card ────────────────────────────────────────────────────────
-const InvoiceCard = ({ item, onDelete, onShare, index }: {
-  item: any; onDelete: () => void; onShare: () => void; index: number;
+const InvoiceCard = ({ item, onDelete, onShare, onEdit, index }: {
+  item: any; onDelete: () => void; onShare: () => void;
+  onEdit: () => void; index: number;
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
@@ -190,9 +150,7 @@ const InvoiceCard = ({ item, onDelete, onShare, index }: {
   return (
     <Animated.View style={[styles.invCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
       <View style={styles.invCardTop}>
-        <View style={styles.invIcon}>
-          <Text style={styles.invIconText}>🧾</Text>
-        </View>
+        <View style={styles.invIcon}><Text style={styles.invIconText}>🧾</Text></View>
         <View style={{ flex: 1 }}>
           <Text style={styles.invCustomer} numberOfLines={1}>{item.customerName}</Text>
           <Text style={styles.invDate}>{date}</Text>
@@ -220,6 +178,9 @@ const InvoiceCard = ({ item, onDelete, onShare, index }: {
         <TouchableOpacity style={styles.invShareBtn} onPress={onShare} activeOpacity={0.8}>
           <Text style={styles.invShareBtnText}>📤  Share PDF</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.invEditBtn} onPress={onEdit} activeOpacity={0.8}>
+          <Text style={styles.invEditBtnText}>✏️</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.invDeleteBtn} onPress={onDelete} activeOpacity={0.8}>
           <Text style={styles.invDeleteBtnText}>🗑️</Text>
         </TouchableOpacity>
@@ -239,6 +200,10 @@ export default function InvoicesScreen() {
   const [quantity, setQuantity] = useState('');
   const [gst, setGst] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
+
+  // Search
+  const [search, setSearch] = useState('');
 
   // Data
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -255,13 +220,16 @@ export default function InvoicesScreen() {
   const total = subtotal + gstAmount;
   const isFormReady = customerName && productName && price && quantity && gst;
 
-  // Fetch all data
+  // Filtered invoices
+  const filteredInvoices = invoices.filter((inv) =>
+    inv.customerName?.toLowerCase().includes(search.toLowerCase()) ||
+    inv.productName?.toLowerCase().includes(search.toLowerCase()) ||
+    inv.total?.toString().includes(search)
+  );
+
   const fetchAll = async () => {
     try {
-      const [custRes, prodRes] = await Promise.all([
-        fetch(CUSTOMERS_URL),
-        fetch(PRODUCTS_URL),
-      ]);
+      const [custRes, prodRes] = await Promise.all([fetch(CUSTOMERS_URL), fetch(PRODUCTS_URL)]);
       const custData = await custRes.json();
       const prodData = await prodRes.json();
       if (Array.isArray(custData)) setCustomers(custData);
@@ -282,32 +250,38 @@ export default function InvoicesScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { if (tab === 'list') fetchInvoices(); }, [tab]);
 
-  useEffect(() => {
-    if (tab === 'list') fetchInvoices();
-  }, [tab]);
-
-  // When customer selected from picker
-  const onSelectCustomer = (customer: any) => {
-    setCustomerName(customer.name);
-  };
-
-  // When product selected from picker — auto fill price and gst
+  const onSelectCustomer = (customer: any) => setCustomerName(customer.name);
   const onSelectProduct = (product: any) => {
     setProductName(product.name);
     setPrice(product.price.toString());
     setGst(product.gst.toString());
   };
 
+  // Open edit modal
+  const openEdit = (invoice: any) => {
+    setEditingInvoice(invoice);
+    setCustomerName(invoice.customerName);
+    setProductName(invoice.productName);
+    setPrice(invoice.price.toString());
+    setQuantity(invoice.quantity.toString());
+    setGst(invoice.gst.toString());
+    setTab('create');
+  };
+
+  // Reset form
+  const resetForm = () => {
+    setEditingInvoice(null);
+    setCustomerName(''); setProductName('');
+    setPrice(''); setQuantity(''); setGst('');
+  };
+
   const buildHtml = (data: any) => `
     <html><body style="font-family: Arial; padding: 40px; color: #111;">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-        <div><h1 style="color:#1A56DB; margin:0; font-size:32px;">INVOICE</h1>
-        <p style="color:#9CA3AF; margin:4px 0 0;">${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p></div>
-      </div>
+      <div><h1 style="color:#1A56DB; margin:0; font-size:32px;">INVOICE</h1>
+      <p style="color:#9CA3AF; margin:4px 0 0;">${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p></div>
       <hr style="border:none; border-top:2px solid #E5E3DC; margin:24px 0;"/>
       <h2 style="margin:0 0 4px;">${data.customerName}</h2>
       <table width="100%" style="border-collapse:collapse; margin-top:24px;">
@@ -338,12 +312,10 @@ export default function InvoicesScreen() {
     try {
       const file = await Print.printToFileAsync({ html: buildHtml(item) });
       await Sharing.shareAsync(file.uri);
-    } catch {
-      Alert.alert('Error', 'Could not generate PDF');
-    }
+    } catch { Alert.alert('Error', 'Could not generate PDF'); }
   };
 
-  const generateAndSave = async () => {
+  const saveInvoice = async () => {
     if (!isFormReady) { Alert.alert('Required', 'Please fill all fields.'); return; }
     try {
       setSaving(true);
@@ -352,22 +324,35 @@ export default function InvoicesScreen() {
         price: Number(price), quantity: Number(quantity), gst: Number(gst),
         subtotal, gstAmount, total,
       };
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const saved = await res.json();
-      if (!saved._id) { Alert.alert('Error', 'Could not save invoice'); return; }
-      const file = await Print.printToFileAsync({ html: buildHtml(payload) });
-      await Sharing.shareAsync(file.uri);
-      setCustomerName(''); setProductName(''); setPrice(''); setQuantity(''); setGst('');
-      Alert.alert('Done', 'Invoice saved and PDF shared!');
-    } catch {
-      Alert.alert('Error', 'Something went wrong');
-    } finally {
-      setSaving(false);
-    }
+
+      if (editingInvoice) {
+        // ✏️ Update existing invoice
+        const res = await fetch(`${API_URL}/${editingInvoice._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const updated = await res.json();
+        setInvoices(invoices.map((i: any) => i._id === editingInvoice._id ? updated : i));
+        resetForm();
+        Alert.alert('Done', 'Invoice updated!');
+        setTab('list');
+      } else {
+        // ➕ Create new invoice
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const saved = await res.json();
+        if (!saved._id) { Alert.alert('Error', 'Could not save invoice'); return; }
+        const file = await Print.printToFileAsync({ html: buildHtml(payload) });
+        await Sharing.shareAsync(file.uri);
+        resetForm();
+        Alert.alert('Done', 'Invoice saved and PDF shared!');
+      }
+    } catch { Alert.alert('Error', 'Something went wrong'); }
+    finally { setSaving(false); }
   };
 
   const deleteInvoice = (id: string) => {
@@ -392,11 +377,13 @@ export default function InvoicesScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerLabel}>Finance</Text>
-          <Text style={styles.headerTitle}>Invoices</Text>
+          <Text style={styles.headerTitle}>
+            {editingInvoice ? '✏️ Edit Invoice' : 'Invoices'}
+          </Text>
         </View>
         {tab === 'list' && !loading && (
           <View style={styles.countBadge}>
-            <Text style={styles.countBadgeText}>{invoices.length}</Text>
+            <Text style={styles.countBadgeText}>{filteredInvoices.length}</Text>
           </View>
         )}
       </View>
@@ -407,53 +394,33 @@ export default function InvoicesScreen() {
           <TouchableOpacity
             key={t}
             style={[styles.tabBtn, tab === t && styles.tabBtnActive]}
-            onPress={() => setTab(t)}
+            onPress={() => { setTab(t); if (t === 'create' && !editingInvoice) resetForm(); }}
             activeOpacity={0.8}>
             <Text style={[styles.tabBtnText, tab === t && styles.tabBtnTextActive]}>
-              {t === 'create' ? '✏️  Create' : '📋  All Invoices'}
+              {t === 'create' ? (editingInvoice ? '✏️  Edit' : '✏️  Create') : '📋  All Invoices'}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Create tab */}
+      {/* Create / Edit tab */}
       {tab === 'create' ? (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.createScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-            {/* Customer Selector */}
-            <Text style={styles.sectionLabel}>Customer</Text>
-            <SelectorBtn
-              label="Select Customer"
-              value={customerName}
-              placeholder="Tap to choose a customer..."
-              onPress={() => setShowCustomerPicker(true)}
-            />
-            {/* Or type manually */}
-            <Field
-              label="Or type customer name"
-              value={customerName}
-              onChangeText={setCustomerName}
-              placeholder="Type manually..."
-              autoCapitalize="words"
-            />
+            {editingInvoice && (
+              <TouchableOpacity style={styles.cancelEditBtn} onPress={resetForm}>
+                <Text style={styles.cancelEditText}>✕ Cancel Edit</Text>
+              </TouchableOpacity>
+            )}
 
-            {/* Product Selector */}
+            <Text style={styles.sectionLabel}>Customer</Text>
+            <SelectorBtn label="Select Customer" value={customerName} placeholder="Tap to choose a customer..." onPress={() => setShowCustomerPicker(true)} />
+            <Field label="Or type customer name" value={customerName} onChangeText={setCustomerName} placeholder="Type manually..." autoCapitalize="words" />
+
             <Text style={styles.sectionLabel}>Product</Text>
-            <SelectorBtn
-              label="Select Product"
-              value={productName}
-              placeholder="Tap to choose a product..."
-              onPress={() => setShowProductPicker(true)}
-            />
-            {/* Price and GST auto-filled but editable */}
-            <Field
-              label="Or type product name"
-              value={productName}
-              onChangeText={setProductName}
-              placeholder="Type manually..."
-              autoCapitalize="words"
-            />
+            <SelectorBtn label="Select Product" value={productName} placeholder="Tap to choose a product..." onPress={() => setShowProductPicker(true)} />
+            <Field label="Or type product name" value={productName} onChangeText={setProductName} placeholder="Type manually..." autoCapitalize="words" />
 
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
@@ -469,15 +436,10 @@ export default function InvoicesScreen() {
               </View>
             </View>
 
-            {/* Live summary */}
             <View style={styles.summaryCard}>
               <View style={styles.summaryHeader}>
                 <Text style={styles.summaryTitle}>Invoice Summary</Text>
-                {isFormReady && (
-                  <View style={styles.readyPill}>
-                    <Text style={styles.readyPillText}>Ready ✅</Text>
-                  </View>
-                )}
+                {isFormReady && <View style={styles.readyPill}><Text style={styles.readyPillText}>Ready ✅</Text></View>}
               </View>
               <SummaryRow label="Customer" value={customerName || '—'} />
               <SummaryRow label="Product" value={productName || '—'} />
@@ -489,13 +451,11 @@ export default function InvoicesScreen() {
 
             <TouchableOpacity
               style={[styles.generateBtn, (!isFormReady || saving) && styles.generateBtnDisabled]}
-              onPress={generateAndSave}
-              disabled={!isFormReady || saving}
-              activeOpacity={0.85}>
-              {saving ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.generateBtnText}>💾  Save & Generate PDF</Text>
+              onPress={saveInvoice} disabled={!isFormReady || saving} activeOpacity={0.85}>
+              {saving ? <ActivityIndicator color="#fff" size="small" /> : (
+                <Text style={styles.generateBtnText}>
+                  {editingInvoice ? '💾  Update Invoice' : '💾  Save & Generate PDF'}
+                </Text>
               )}
             </TouchableOpacity>
 
@@ -504,54 +464,61 @@ export default function InvoicesScreen() {
         </KeyboardAvoidingView>
 
       ) : (
-        loading ? (
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={C.brand} />
-            <Text style={styles.loadingText}>Loading invoices…</Text>
-          </View>
-        ) : invoices.length === 0 ? (
-          <View style={styles.centered}>
-            <Text style={styles.emptyIcon}>🧾</Text>
-            <Text style={styles.emptyTitle}>No invoices yet</Text>
-            <Text style={styles.emptyBody}>Switch to Create to make your first invoice.</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={invoices}
-            keyExtractor={(item: any) => item._id}
-            renderItem={({ item, index }) => (
-              <InvoiceCard
-                item={item}
-                index={index}
-                onDelete={() => deleteInvoice(item._id)}
-                onShare={() => shareInvoicePdf(item)}
-              />
+        <View style={{ flex: 1 }}>
+          {/* 🔍 Search Bar */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              placeholder="🔍 Search by customer, product..."
+              value={search}
+              onChangeText={setSearch}
+              style={styles.searchInput}
+              placeholderTextColor={C.textTertiary}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')} style={styles.clearBtn}>
+                <Text style={styles.clearText}>✕</Text>
+              </TouchableOpacity>
             )}
-            contentContainerStyle={styles.list}
-            showsVerticalScrollIndicator={false}
-          />
-        )
+          </View>
+
+          {search.length > 0 && (
+            <Text style={styles.resultCount}>
+              {filteredInvoices.length} result{filteredInvoices.length !== 1 ? 's' : ''} found
+            </Text>
+          )}
+
+          {loading ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="large" color={C.brand} />
+              <Text style={styles.loadingText}>Loading invoices…</Text>
+            </View>
+          ) : filteredInvoices.length === 0 ? (
+            <View style={styles.centered}>
+              <Text style={styles.emptyIcon}>{search ? '🔍' : '🧾'}</Text>
+              <Text style={styles.emptyTitle}>{search ? `No results for "${search}"` : 'No invoices yet'}</Text>
+              <Text style={styles.emptyBody}>{search ? 'Try a different search term' : 'Switch to Create to make your first invoice.'}</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredInvoices}
+              keyExtractor={(item: any) => item._id}
+              renderItem={({ item, index }) => (
+                <InvoiceCard
+                  item={item} index={index}
+                  onDelete={() => deleteInvoice(item._id)}
+                  onShare={() => shareInvoicePdf(item)}
+                  onEdit={() => openEdit(item)}
+                />
+              )}
+              contentContainerStyle={styles.list}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </View>
       )}
 
-      {/* Customer Picker Modal */}
-      <PickerModal
-        visible={showCustomerPicker}
-        title="Select Customer"
-        items={customers}
-        searchKey="name"
-        onSelect={onSelectCustomer}
-        onClose={() => setShowCustomerPicker(false)}
-      />
-
-      {/* Product Picker Modal */}
-      <PickerModal
-        visible={showProductPicker}
-        title="Select Product"
-        items={products}
-        searchKey="name"
-        onSelect={onSelectProduct}
-        onClose={() => setShowProductPicker(false)}
-      />
+      <PickerModal visible={showCustomerPicker} title="Select Customer" items={customers} searchKey="name" onSelect={onSelectCustomer} onClose={() => setShowCustomerPicker(false)} />
+      <PickerModal visible={showProductPicker} title="Select Product" items={products} searchKey="name" onSelect={onSelectProduct} onClose={() => setShowProductPicker(false)} />
     </View>
   );
 }
@@ -580,6 +547,8 @@ const styles = StyleSheet.create({
   selectorBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: C.surface, borderWidth: 1, borderColor: C.brand, borderRadius: 12, padding: 14 },
   selectorText: { fontSize: 15, color: C.textPrimary, fontWeight: '600', flex: 1 },
   selectorArrow: { fontSize: 12, color: C.brand, marginLeft: 8 },
+  cancelEditBtn: { backgroundColor: C.dangerLight, borderRadius: 12, padding: 12, alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: C.danger },
+  cancelEditText: { color: C.danger, fontWeight: '700', fontSize: 14 },
   summaryCard: { backgroundColor: C.surface, borderRadius: 16, padding: 20, marginTop: 8, marginBottom: 20, borderWidth: 1, borderColor: C.border },
   summaryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   summaryTitle: { fontSize: 16, fontWeight: '700', color: C.textPrimary },
@@ -594,6 +563,11 @@ const styles = StyleSheet.create({
   generateBtn: { backgroundColor: C.brand, borderRadius: 14, padding: 18, alignItems: 'center' },
   generateBtnDisabled: { opacity: 0.45 },
   generateBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: 12, marginHorizontal: 16, marginBottom: 8, paddingHorizontal: 14, borderWidth: 1, borderColor: C.border },
+  searchInput: { flex: 1, padding: 14, fontSize: 15, color: C.textPrimary },
+  clearBtn: { padding: 8 },
+  clearText: { fontSize: 16, color: C.textTertiary },
+  resultCount: { fontSize: 13, color: C.textTertiary, marginLeft: 20, marginBottom: 8 },
   list: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100 },
   invCard: { backgroundColor: C.surface, borderRadius: 16, marginBottom: 14, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
   invCardTop: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
@@ -611,6 +585,8 @@ const styles = StyleSheet.create({
   invActions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: C.border, padding: 12, gap: 10 },
   invShareBtn: { flex: 1, backgroundColor: C.brandLight, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
   invShareBtnText: { fontSize: 14, fontWeight: '700', color: C.brand },
+  invEditBtn: { width: 42, height: 42, borderRadius: 10, backgroundColor: C.successLight, alignItems: 'center', justifyContent: 'center' },
+  invEditBtnText: { fontSize: 18 },
   invDeleteBtn: { width: 42, height: 42, borderRadius: 10, backgroundColor: C.dangerLight, alignItems: 'center', justifyContent: 'center' },
   invDeleteBtnText: { fontSize: 18 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
